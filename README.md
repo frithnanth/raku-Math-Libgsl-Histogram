@@ -1,3 +1,5 @@
+[![Actions Status](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/workflows/test/badge.svg)](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/actions) [![Build Status](https://travis-ci.org/frithnanth/raku-Math-Libgsl-Histogram.svg?branch=master)](https://travis-ci.org/frithnanth/raku-Math-Libgsl-Histogram)
+
 ![Distribution of simulated events](examples/2Dhistogram.svg)
 
 NAME
@@ -210,10 +212,7 @@ This method sets the ranges of the histogram to cover the ranges **$xmin** to **
 
 This method updates the histogram by adding one (1.0) to the bin whose x and y ranges contain the coordinates **($x, $y)**. This method returns **self**, to allow method chaining.
 
-head
-====
-
-accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2D)
+### accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2D)
 
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number **$weight**. This method returns **self**, to allow method chaining.
 

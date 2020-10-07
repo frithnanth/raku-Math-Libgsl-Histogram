@@ -361,7 +361,7 @@ This method returns B<self>, to allow method chaining.
 This method updates the histogram by adding one (1.0) to the bin whose x and y ranges contain the coordinates B<($x, $y)>.
 This method returns B<self>, to allow method chaining.
 
-=head accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2D)
+=head3 accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2D)
 
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number B<$weight>.
 This method returns B<self>, to allow method chaining.
