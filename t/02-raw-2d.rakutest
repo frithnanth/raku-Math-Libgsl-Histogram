@@ -1,0 +1,176 @@
+#!/usr/bin/env perl6
+
+use Test;
+use NativeCall;
+use Math::Libgsl::Constants;
+use lib 'lib';
+use Math::Libgsl::Raw::Histogram;
+
+subtest 'histogram allocation' => {
+  my gsl_histogram2d $h1 = gsl_histogram2d_alloc(10, 5);
+  isa-ok $h1, Math::Libgsl::Raw::Histogram::gsl_histogram2d, 'allocate histogram';
+  ok $h1.nx == 10 && $h1.ny == 5, 'number of bins';
+  lives-ok { gsl_histogram2d_free($h1) }, 'free histogram';
+  my gsl_histogram2d $h2 = gsl_histogram2d_calloc(3, 3);
+  isa-ok $h2, Math::Libgsl::Raw::Histogram::gsl_histogram2d, 'allocate and clear histogram';
+  my gsl_histogram2d $h3 = gsl_histogram2d_calloc_uniform(10, 10, .1e0, 12.5e0, -2.5e0, 3.7e0);
+  isa-ok $h3, Math::Libgsl::Raw::Histogram::gsl_histogram2d, 'allocate and clear uniform histogram';
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 30e0, 70e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 40e0, 60e0;
+  ok gsl_histogram2d_set_ranges($h2, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems) == GSL_SUCCESS, 'set histogram ranges';
+  gsl_histogram2d_set_ranges_uniform($h2, 10e0, 100e0, 20e0, 200e0);
+  is-deeply ($h2.xrange[^4]».Int, $h2.yrange[^4]».Int).flat, (10, 39, 69, 100, 20, 79, 139, 200), 'set uniform ranges';
+  gsl_histogram2d_free($h2);
+  gsl_histogram2d_free($h3);
+}
+
+subtest 'updating, accessing, and searching elements' => {
+  my gsl_histogram2d $h = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems);
+  gsl_histogram2d_increment($h, 5e0, 10e0);
+  is-deeply $h.bin[^3], (1e0, 0e0, 0e0), 'increment bin';
+  ok gsl_histogram2d_accumulate($h, 15e0, 22e0, 6.2e0) == GSL_SUCCESS, 'accumulate weight in bin';
+  ok gsl_histogram2d_get($h, 1, 1) == 6.2e0, 'get bin content';
+  my num64 ($lower, $upper);
+  gsl_histogram2d_get_xrange($h, 1, $lower, $upper);
+  ok $lower == 10e0 && $upper == 100e0, 'get x bin limits';
+  gsl_histogram2d_get_yrange($h, 1, $lower, $upper);
+  ok $lower == 20e0 && $upper == 200e0, 'get y bin limits';
+  ok gsl_histogram2d_xmax($h) == 1000, 'max x bin limit';
+  ok gsl_histogram2d_xmin($h) == 1, 'min x bin limit';
+  ok gsl_histogram2d_ymax($h) == 2000, 'max y bin limit';
+  ok gsl_histogram2d_ymin($h) == 2, 'min y bin limit';
+  ok gsl_histogram2d_nx($h) == 3, 'number of x bins';
+  ok gsl_histogram2d_ny($h) == 3, 'number of y bins';
+  my int32 ($xbin, $ybin);
+  gsl_histogram2d_find($h, 18e0, 22e0, $xbin, $ybin);
+  ok $xbin == 1 && $ybin == 1, 'find x and y bin number';
+  gsl_histogram2d_reset($h);
+  is-deeply $h.bin[^3], (0e0, 0e0, 0e0), 'reset histogram';
+  gsl_histogram2d_free($h);
+}
+
+subtest 'copying histogram' => {
+  my gsl_histogram2d $h = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems);
+  gsl_histogram2d_increment($h, 5e0, 10e0);
+  gsl_histogram2d_increment($h, 8e0, 16e0);
+  gsl_histogram2d_increment($h, 18e0, 36e0);
+  my gsl_histogram2d $h1 = gsl_histogram2d_calloc(3, 3);
+  gsl_histogram2d_memcpy($h1, $h);
+  is-deeply $h.bin[^3], $h1.bin[^3], 'histogram copy';
+  my $h2 = gsl_histogram2d_clone($h);
+  is-deeply $h.bin[^3], $h2.bin[^3], 'histogram clone';
+  gsl_histogram2d_free($h);
+  gsl_histogram2d_free($h1);
+  gsl_histogram2d_free($h2);
+}
+
+subtest 'histogram statistics' => {
+  my gsl_histogram2d $h = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems);
+  gsl_histogram2d_increment($h, 5e0, 10e0);
+  gsl_histogram2d_increment($h, 8e0, 16e0);
+  gsl_histogram2d_increment($h, 18e0, 36e0);
+  ok gsl_histogram2d_max_val($h) == 2, 'max count in bins';
+  my size_t ($i, $j);
+  gsl_histogram2d_max_bin($h, $i, $j);
+  ok $i == 0 && $j == 0, 'bin with max count';
+  ok gsl_histogram2d_min_val($h) == 0, 'min count in bins';
+  gsl_histogram2d_min_bin($h, $i, $j);
+  ok $i == 0 && $j == 1, 'bin with min count';
+  ok gsl_histogram2d_xmean($h) == 22e0, 'x mean of histogrammed variable';
+  ok gsl_histogram2d_ymean($h) == 44e0, 'y mean of histogrammed variable';
+  is-approx gsl_histogram2d_xsigma($h), 23.33452377915607, 'x standard deviation of histogrammed variable';
+  is-approx gsl_histogram2d_ysigma($h), 46.66904755831214, 'y standard deviation of histogrammed variable';
+  ok gsl_histogram2d_cov($h) == 1089, 'covariance of histogrammed variable';
+  ok gsl_histogram2d_sum($h) == 3, 'sum of all bin values';
+  gsl_histogram2d_free($h);
+}
+
+subtest 'histogram operations' => {
+  my gsl_histogram2d $h1 = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange1 .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange1 .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h1, $xrange1, $xrange1.list.elems, $yrange1, $yrange1.list.elems);
+  my gsl_histogram2d $h2 = gsl_histogram2d_calloc(3, 3);
+  gsl_histogram2d_set_ranges($h2, $xrange1, $xrange1.list.elems, $yrange1, $yrange1.list.elems);
+  ok gsl_histogram2d_equal_bins_p($h1, $h2) == 1, 'two histograms are identical';
+  my CArray[num64] $xrange3 .= new: 1e0, 10e0, 100e0, 500e0, 1000e0;
+  my CArray[num64] $yrange3 .= new: 2e0, 20e0, 200e0, 500e0, 2000e0;
+  my gsl_histogram2d $h3 = gsl_histogram2d_calloc(4, 4);
+  gsl_histogram2d_set_ranges($h3, $xrange3, $xrange3.list.elems, $yrange3, $yrange3.list.elems);
+  ok gsl_histogram2d_equal_bins_p($h1, $h3) == 0, 'two histograms are not identical';
+  gsl_histogram2d_increment($h1, 5e0, 10e0) for ^18;
+  gsl_histogram2d_increment($h1, 8e0, 16e0) for ^10;
+  gsl_histogram2d_increment($h1, 18e0, 36e0) for ^20;
+  gsl_histogram2d_increment($h1, 168e0, 384e0) for ^25;
+  gsl_histogram2d_increment($h2, 5e0, 10e0) for ^27;
+  gsl_histogram2d_increment($h2, 8e0, 16e0) for ^35;
+  gsl_histogram2d_increment($h2, 18e0, 36e0) for ^10;
+  gsl_histogram2d_increment($h2, 168e0, 384e0) for ^15;
+  gsl_histogram2d_add($h1, $h2);
+  ok gsl_histogram2d_get($h1, 0, 0) == 90, 'add two histograms';
+  gsl_histogram2d_sub($h1, $h2);
+  ok gsl_histogram2d_get($h1, 0, 0) == 28, 'subtract two histograms';
+  gsl_histogram2d_mul($h1, $h2);
+  ok gsl_histogram2d_get($h1, 0, 0) == 1736, 'multiply two histograms';
+  gsl_histogram2d_div($h1, $h2);
+  ok gsl_histogram2d_get($h1, 0, 0) == 28, 'divide two histograms';
+  gsl_histogram2d_scale($h1, 2e0);
+  ok gsl_histogram2d_get($h1, 0, 0) == 56, 'scale a histogram';
+  gsl_histogram2d_shift($h1, 2.5e0);
+  ok gsl_histogram2d_get($h1, 0, 0) == 58.5, 'shift a histogram';
+  gsl_histogram2d_free($h1);
+  gsl_histogram2d_free($h2);
+}
+
+subtest 'histogram I/O' => {
+  my $filename = 't/raw-histogram2d.dat';
+  LEAVE { with $filename.IO { .unlink if .e } }
+  my gsl_histogram2d $h = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems);
+  gsl_histogram2d_increment($h, 5e0, 10e0) for ^18;
+  gsl_histogram2d_increment($h, 8e0, 16e0) for ^10;
+  gsl_histogram2d_increment($h, 18e0, 36e0) for ^20;
+  gsl_histogram2d_increment($h, 168e0, 384e0) for ^25;
+  ok mgsl_histogram2d_fwrite($filename, $h) == GSL_SUCCESS, 'can write data to file';
+  gsl_histogram2d_reset($h);
+  ok mgsl_histogram2d_fread($filename, $h) == GSL_SUCCESS, 'can read data from file';
+  is-deeply (gather take gsl_histogram2d_get($h, $_, $_) for ^3), (28e0, 20e0, 25e0), 'verify data';
+  ok mgsl_histogram2d_fprintf($filename, $h, '%f', '%f') == GSL_SUCCESS, 'can write formatted data to file';
+  gsl_histogram2d_reset($h);
+  ok mgsl_histogram2d_fscanf($filename, $h) == GSL_SUCCESS, 'can read formatted data from file';
+  is-deeply (gather take gsl_histogram2d_get($h, $_, $_) for ^3), (28e0, 20e0, 25e0), 'verify formatted data';
+  gsl_histogram2d_free($h);
+}
+
+subtest 'histogram probability distribution' => {
+  my gsl_histogram2d_pdf $hpdf = gsl_histogram2d_pdf_alloc(3, 3);
+  isa-ok $hpdf, Math::Libgsl::Raw::Histogram::gsl_histogram2d_pdf, 'allocate probability distibution histogram';
+  my gsl_histogram2d $h = gsl_histogram2d_calloc(3, 3);
+  my CArray[num64] $xrange .= new: 1e0, 10e0, 100e0, 1000e0;
+  my CArray[num64] $yrange .= new: 2e0, 20e0, 200e0, 2000e0;
+  gsl_histogram2d_set_ranges($h, $xrange, $xrange.list.elems, $yrange, $yrange.list.elems);
+  gsl_histogram2d_increment($h, 5e0, 10e0) for ^18;
+  gsl_histogram2d_increment($h, 8e0, 16e0) for ^10;
+  gsl_histogram2d_increment($h, 18e0, 36e0) for ^20;
+  gsl_histogram2d_increment($h, 168e0, 384e0) for ^25;
+  ok gsl_histogram2d_pdf_init($hpdf, $h) == GSL_SUCCESS, 'initialize probability distibution histogram';
+  my num64 ($x, $y);
+  gsl_histogram2d_pdf_sample($hpdf, .001e0, .002e0, $x, $y);
+  is-approx $x, 1.0234642857142857, 'random x sample';
+  is-approx $y, 2.036, 'random y sample';
+  gsl_histogram2d_free($h);
+  lives-ok { gsl_histogram2d_pdf_free($hpdf) }, 'free probability distibution histogram';
+}
+
+done-testing;

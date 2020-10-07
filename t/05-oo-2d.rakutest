@@ -1,0 +1,113 @@
+#!/usr/bin/env perl6
+
+use Test;
+use lib 'lib';
+use Math::Libgsl::Histogram2D;
+
+subtest 'histogram allocation' => {
+  my Math::Libgsl::Histogram2D $h.= new: 3, 3;
+  isa-ok $h, Math::Libgsl::Histogram2D, 'create 2D histogram';
+  $h.set-ranges(xranges => (1, 10, 30, 70), yranges => (2, 20, 40, 60));
+  is-deeply ($h.h.xrange[^4]».Int, $h.h.yrange[^4]».Int).flat, (1, 10, 30, 70, 2, 20, 40, 60), 'set ranges';
+  $h.set-uniform(10, 100, 20, 200);
+  is-deeply ($h.h.xrange[^4]».Int, $h.h.yrange[^4]».Int).flat, (10, 39, 69, 100, 20, 79, 139, 200), 'set ranges';
+}
+
+subtest 'updating, accessing, and searching elements' => {
+  my $h = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (1, 10, 100, 1000), yranges => (2, 20, 200, 2000)).increment(5, 5);
+  ok $h.get(0, 0) == 1, 'increment histogram and read bin content';
+  $h.accumulate(15, 22, 2.6);
+  ok $h.get(1, 1) == 2.6, 'accumulate histogram with weight';
+  my ($lower, $upper) = $h.get-xrange(1);
+  ok $lower == 10 && $upper == 100, 'get x bin limits';
+  ($lower, $upper) = $h.get-yrange(1);
+  ok $lower == 20 && $upper == 200, 'get y bin limits';
+  ok $h.xmax == 1000, 'max bin x limit';
+  ok $h.xmin ==    1, 'min bin x limit';
+  ok $h.ymax == 2000, 'max bin y limit';
+  ok $h.ymin ==    2, 'min bin y limit';
+  ok $h.nx == 3, 'number of x bins';
+  ok $h.ny == 3, 'number of y bins';
+  my ($i, $j) = $h.find(18, 22);
+  ok $i == 1 && $j == 1, 'find bin number';
+  $h.reset;
+  is-deeply (gather for ^3 X ^3 -> ($i, $j) { take $h.get($i, $j) }), (0e0 xx 9), 'reset histogram';
+}
+
+subtest 'copying histogram' => {
+  my $h = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (0, 10, 100, 1000), yranges => (2, 20, 200, 2000)).increment(5, 5).increment(18,25);
+  my $h1 = Math::Libgsl::Histogram2D.new(3, 3);
+  $h1.copy($h);
+  is-deeply (gather for ^3 X ^3 -> ($i, $j) { take $h.get($i, $j) }), (gather for ^3 X ^3 -> ($i, $j) { take $h1.get($i, $j) }), 'histogram copy';
+  my $h2 = $h.clone;
+  is-deeply (gather for ^3 X ^3 -> ($i, $j) { take $h.get($i, $j) }), (gather for ^3 X ^3 -> ($i, $j) { take $h2.get($i, $j) }), 'histogram clone';
+  my $h3 = Math::Libgsl::Histogram2D.new(4, 4);
+  throws-like { $h3.copy($h) }, X::TypeCheck::Binding::Parameter, :message(/'Constraint type check failed'/);
+}
+
+subtest 'histogram statistics' => {
+  my $h = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (1, 10, 100, 1000), yranges => (2, 20, 200, 2000));
+  $h.increment(5, 10);
+  $h.increment(8, 16);
+  $h.increment(18, 36);
+  ok $h.max-val == 2, 'max count in bins';
+  ok $h.min-val == 0, 'min count in bins';
+  my ($i, $j) = $h.max-bin;
+  ok $i == 0 && $j == 0, 'bin with max count';
+  ($i, $j) = $h.min-bin;
+  ok $i == 0 && $j == 1, 'bin with min count';
+  ok $h.xmean == 22, 'x mean of histogrammed variable';
+  ok $h.ymean == 44, 'y mean of histogrammed variable';
+  is-approx $h.xsigma, 23.33452377915607, 'x standard deviation of histogrammed variable';
+  is-approx $h.ysigma, 46.66904755831214, 'y standard deviation of histogrammed variable';
+  ok $h.cov == 1089, 'covariance of histogrammed variable';
+  ok $h.sum == 3, 'sum of all bin values';
+}
+
+subtest 'histogram operations' => {
+  my $h1 = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (0, 10, 100, 1000), yranges => (2, 20, 200, 2000));
+  my $h2 = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (0, 10, 100, 1000), yranges => (2, 20, 200, 2000));
+  ok $h1.equal($h2), 'two histograms are identical';
+  my $h3 = Math::Libgsl::Histogram2D.new(4, 4);
+  nok $h1.equal($h3), 'two histograms are not identical';
+  $h1.increment(5, 5) for ^18;
+  $h1.increment(8, 8) for ^10;
+  $h1.increment(18, 18) for ^20;
+  $h1.increment(168, 168) for ^25;
+  $h2.increment(5, 5) for ^27;
+  $h2.increment(8, 8) for ^35;
+  $h2.increment(18, 18) for ^10;
+  $h2.increment(168, 168) for ^15;
+  $h1.add($h2);
+  ok $h1.get(0, 0) == 90, 'add two histograms';
+  $h1.sub($h2);
+  ok $h1.get(0, 0) == 28, 'subtract two histograms';
+  $h1.mul($h2);
+  ok $h1.get(0, 0) == 1736, 'multiply two histograms';
+  $h1.div($h2);
+  ok $h1.get(0, 0) == 28, 'divide two histograms';
+  $h1.scale(2);
+  ok $h1.get(0, 0) == 56, 'scale a histogram';
+  $h1.shift(2.5);
+  ok $h1.get(0, 0) == 58.5, 'shift a histogram';
+}
+
+subtest 'histogram I/O' => {
+  my $filename = 't/histogram2d.dat';
+  LEAVE { with $filename.IO { .unlink if .e } }
+  my $h1 = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (0, 10, 100, 1000), yranges => (2, 20, 200, 2000));
+  $h1.increment(5, 5) for ^18;
+  $h1.increment(8, 8) for ^10;
+  $h1.increment(18, 18) for ^20;
+  $h1.increment(168, 168) for ^25;
+  lives-ok { $h1.write: $filename }, 'can write a histogram to a file';
+  $h1.reset;
+  lives-ok { $h1.read: $filename },  'can read a histogram from a file';
+  is-deeply (gather for ^3 X ^3 -> ($i, $j) { take $h1.get($i, $j) }), (28e0, 0e0, 0e0, 20e0, 0e0, 0e0, 0e0, 25e0, 0e0), 'verify data';
+  lives-ok { $h1.printf: $filename, "%f", "%f" }, 'can printf a histogram to a file';
+  $h1.reset;
+  lives-ok { $h1.scanf: $filename }, 'can scanf a histogram from a file';
+  is-deeply (gather for ^3 X ^3 -> ($i, $j) { take $h1.get($i, $j) }), (28e0, 0e0, 0e0, 20e0, 0e0, 0e0, 0e0, 25e0, 0e0), 'verify data';
+}
+
+done-testing;

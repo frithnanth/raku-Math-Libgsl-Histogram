@@ -1,0 +1,21 @@
+SRC=src
+
+all : %gslhelper%
+
+# 'all', with compilation warnings
+debug :
+	%MAKE% "DBG=-Wall -g"  all
+
+%gslhelper% : $(SRC)/histogram%O%
+	%LD% %LDSHARED% %LDFLAGS% -o %gslhelper% $(SRC)/histogram%O% -lgsl
+
+%%O%: %.c
+	%CC% -I $(SRC) -c %CCSHARED% %CCFLAGS% -I/usr/include/gsl $(DBG) -o $@ $<
+
+clean :
+	@rm -f $(SRC)/*%O%
+	@rm -rf %gslhelper%
+	@rm Makefile
+
+realclean :
+	@rm -rf lib/.precomp

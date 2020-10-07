@@ -1,0 +1,155 @@
+#!/usr/bin/env perl6
+
+use Test;
+use NativeCall;
+use Math::Libgsl::Constants;
+use lib 'lib';
+use Math::Libgsl::Raw::Histogram;
+
+subtest 'histogram allocation' => {
+  my gsl_histogram $h1 = gsl_histogram_alloc(10);
+  isa-ok $h1, Math::Libgsl::Raw::Histogram::gsl_histogram, 'allocate histogram';
+  ok $h1.n == 10, 'number of bins';
+  lives-ok { gsl_histogram_free($h1) }, 'free histogram';
+  my gsl_histogram $h2 = gsl_histogram_calloc(3);
+  isa-ok $h2, Math::Libgsl::Raw::Histogram::gsl_histogram, 'allocate and clear histogram';
+  my gsl_histogram $h3 = gsl_histogram_calloc_uniform(10, .1e0, 12.5e0);
+  isa-ok $h3, Math::Libgsl::Raw::Histogram::gsl_histogram, 'allocate and clear uniform histogram';
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  ok gsl_histogram_set_ranges($h2, $range, $range.list.elems) == GSL_SUCCESS, 'set histogram ranges';
+  gsl_histogram_set_ranges_uniform($h2, 10e0, 100e0);
+  is-deeply $h2.range[^4]».Int, (10, 39, 69, 100), 'set uniform ranges';
+  gsl_histogram_free($h2);
+  gsl_histogram_free($h3);
+}
+
+subtest 'updating, accessing, and searching elements' => {
+  my gsl_histogram $h = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h, $range, $range.list.elems);
+  gsl_histogram_increment($h, 5e0);
+  is-deeply $h.bin[^3], (1e0, 0e0, 0e0), 'increment bin';
+  gsl_histogram_accumulate($h, 15e0, 6.2e0);
+  is-deeply $h.bin[^3], (1e0, 6.2e0, 0e0), 'accumulate weight in bin';
+  ok gsl_histogram_get($h, 1) == 6.2e0, 'get bin content';
+  my num64 ($lower, $upper);
+  gsl_histogram_get_range($h, 1, $lower, $upper);
+  ok $lower == 10e0 && $upper == 100e0, 'get bin limits';
+  ok gsl_histogram_max($h) == 1000, 'max bin limit';
+  ok gsl_histogram_min($h) == 1, 'min bin limit';
+  ok gsl_histogram_bins($h) == 3, 'number of bins';
+  my int32 $bin;
+  gsl_histogram_find($h, 18e0, $bin);
+  ok $bin == 1, 'find bin number';
+  gsl_histogram_reset($h);
+  is-deeply $h.bin[^3], (0e0, 0e0, 0e0), 'reset histogram';
+  gsl_histogram_free($h);
+}
+
+subtest 'copying histogram' => {
+  my gsl_histogram $h = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h, $range, $range.list.elems);
+  gsl_histogram_increment($h, 5e0);
+  gsl_histogram_increment($h, 8e0);
+  gsl_histogram_increment($h, 18e0);
+  my gsl_histogram $h1 = gsl_histogram_calloc(3);
+  gsl_histogram_memcpy($h1, $h);
+  is-deeply $h.bin[^3], $h1.bin[^3], 'histogram copy';
+  my $h2 = gsl_histogram_clone($h);
+  is-deeply $h.bin[^3], $h2.bin[^3], 'histogram clone';
+  gsl_histogram_free($h);
+  gsl_histogram_free($h1);
+  gsl_histogram_free($h2);
+}
+
+subtest 'histogram statistics' => {
+  my gsl_histogram $h = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h, $range, $range.list.elems);
+  gsl_histogram_increment($h, 5e0);
+  gsl_histogram_increment($h, 8e0);
+  gsl_histogram_increment($h, 18e0);
+  ok gsl_histogram_max_val($h) == 2, 'max count in bins';
+  ok gsl_histogram_max_bin($h) == 0, 'bin with max count';
+  ok gsl_histogram_min_val($h) == 0, 'min count in bins';
+  ok gsl_histogram_min_bin($h) == 2, 'bin with min count';
+  ok gsl_histogram_mean($h) == 22e0, 'mean of histogrammed variable';
+  is-approx gsl_histogram_sigma($h), 23.33452377915607, 'standard deviation of histogrammed variable';
+  ok gsl_histogram_sum($h) == 3, 'sum of all bin values';
+  gsl_histogram_free($h);
+}
+
+subtest 'histogram operations' => {
+  my gsl_histogram $h1 = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h1, $range, $range.list.elems);
+  my gsl_histogram $h2 = gsl_histogram_calloc(3);
+  gsl_histogram_set_ranges($h2, $range, $range.list.elems);
+  ok gsl_histogram_equal_bins_p($h1, $h2) == 1, 'two histograms are identical';
+  my gsl_histogram $h3 = gsl_histogram_calloc(4);
+  my CArray[num64] $range2 .= new: 1e0, 10e0, 100e0, 500e0, 1000e0;
+  gsl_histogram_set_ranges($h3, $range, $range2.list.elems);
+  ok gsl_histogram_equal_bins_p($h1, $h3) == 0, 'two histograms are not identical';
+  gsl_histogram_increment($h1, 5e0) for ^18;
+  gsl_histogram_increment($h1, 8e0) for ^10;
+  gsl_histogram_increment($h1, 18e0) for ^20;
+  gsl_histogram_increment($h1, 168e0) for ^25;
+  gsl_histogram_increment($h2, 5e0) for ^27;
+  gsl_histogram_increment($h2, 8e0) for ^35;
+  gsl_histogram_increment($h2, 18e0) for ^10;
+  gsl_histogram_increment($h2, 168e0) for ^15;
+  gsl_histogram_add($h1, $h2);
+  ok gsl_histogram_get($h1, 0) == 90, 'add two histograms';
+  gsl_histogram_sub($h1, $h2);
+  ok gsl_histogram_get($h1, 0) == 28, 'subtract two histograms';
+  gsl_histogram_mul($h1, $h2);
+  ok gsl_histogram_get($h1, 0) == 1736, 'multiply two histograms';
+  gsl_histogram_div($h1, $h2);
+  ok gsl_histogram_get($h1, 0) == 28, 'divide two histograms';
+  gsl_histogram_scale($h1, 2e0);
+  ok gsl_histogram_get($h1, 0) == 56, 'scale a histogram';
+  gsl_histogram_shift($h1, 2.5e0);
+  ok gsl_histogram_get($h1, 0) == 58.5, 'shift a histogram';
+  gsl_histogram_free($h1);
+  gsl_histogram_free($h2);
+}
+
+subtest 'histogram I/O' => {
+  my $filename = 't/raw-histogram.dat';
+  LEAVE { with $filename.IO { .unlink if .e } }
+  my gsl_histogram $h = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h, $range, $range.list.elems);
+  gsl_histogram_increment($h, 5e0) for ^18;
+  gsl_histogram_increment($h, 8e0) for ^10;
+  gsl_histogram_increment($h, 18e0) for ^20;
+  gsl_histogram_increment($h, 168e0) for ^25;
+  ok mgsl_histogram_fwrite($filename, $h) == GSL_SUCCESS, 'can write data to file';
+  gsl_histogram_reset($h);
+  ok mgsl_histogram_fread($filename, $h) == GSL_SUCCESS, 'can read data from file';
+  is-deeply (gather take gsl_histogram_get($h, $_) for ^3), (28e0, 20e0, 25e0), 'verify data';
+  ok mgsl_histogram_fprintf($filename, $h, '%f', '%f') == GSL_SUCCESS, 'can write formatted data to file';
+  gsl_histogram_reset($h);
+  ok mgsl_histogram_fscanf($filename, $h) == GSL_SUCCESS, 'can read formatted data from file';
+  is-deeply (gather take gsl_histogram_get($h, $_) for ^3), (28e0, 20e0, 25e0), 'verify formatted data';
+  gsl_histogram_free($h);
+}
+
+subtest 'histogram probability distribution' => {
+  my gsl_histogram_pdf $hpdf = gsl_histogram_pdf_alloc(3);
+  isa-ok $hpdf, Math::Libgsl::Raw::Histogram::gsl_histogram_pdf, 'allocate probability distibution histogram';
+  my gsl_histogram $h = gsl_histogram_calloc(3);
+  my CArray[num64] $range .= new: 1e0, 10e0, 100e0, 1000e0;
+  gsl_histogram_set_ranges($h, $range, $range.list.elems);
+  gsl_histogram_increment($h, 5e0) for ^18;
+  gsl_histogram_increment($h, 8e0) for ^10;
+  gsl_histogram_increment($h, 18e0) for ^20;
+  gsl_histogram_increment($h, 168e0) for ^25;
+  ok gsl_histogram_pdf_init($hpdf, $h) == GSL_SUCCESS, 'initialize probability distibution histogram';
+  is-approx gsl_histogram_pdf_sample($hpdf, .001e0), 1.0234642857142857, 'get random sample';
+  gsl_histogram_free($h);
+  lives-ok { gsl_histogram_pdf_free($hpdf) }, 'free probability distibution histogram';
+}
+
+done-testing;

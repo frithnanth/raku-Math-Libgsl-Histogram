@@ -1,0 +1,6 @@
+.precomp/
+/blib/
+/src/*.o
+/Makefile
+/resources/
+/Math-Libgsl-Histograms-*

@@ -1,0 +1,99 @@
+#!/usr/bin/env perl6
+
+use Test;
+use lib 'lib';
+use Math::Libgsl::Histogram;
+
+subtest 'histogram allocation' => {
+  my Math::Libgsl::Histogram $h .= new: 3;
+  isa-ok $h, Math::Libgsl::Histogram, 'create 1D histogram';
+  $h.set-ranges(0, 10, 100, 1000);
+  is-deeply $h.h.range[^4]».Int, (0, 10, 100, 1000), 'set ranges';
+  $h.set-uniform(0, 1000);
+  is-deeply $h.h.range[^4]».Int, (0, 333, 666, 1000), 'set uniform ranges';
+}
+
+subtest 'updating, accessing, and searching elements' => {
+  my $h = Math::Libgsl::Histogram.new(3).set-ranges(0, 10, 100, 1000).increment(5);
+  ok $h.get(0) == 1, 'increment histogram and read bin content';
+  $h.accumulate(15, 2.6);
+  ok $h.get(1) == 2.6, 'accumulate histogram with weight';
+  my ($lower, $upper) = $h.get-range(1);
+  ok $lower == 10 && $upper == 100, 'get bin limits';
+  ok $h.max == 1000, 'max bin limit';
+  ok $h.min == 0, 'min bin limit';
+  ok $h.bins == 3, 'number of bins';
+  ok $h.find(18) == 1, 'find bin number';
+  $h.reset;
+  is-deeply (gather take $h.get($_) for ^3), (0e0, 0e0, 0e0), 'reset histogram';
+}
+
+subtest 'copying histogram' => {
+  my $h = Math::Libgsl::Histogram.new(3).set-ranges(0, 10, 100, 1000).increment(5).increment(8).increment(18);
+  my $h1 = Math::Libgsl::Histogram.new(3);
+  $h1.copy($h);
+  is-deeply (gather take $h.get($_) for ^3), (gather take $h1.get($_) for ^3), 'histogram copy';
+  my $h2 = $h.clone;
+  is-deeply (gather take $h.get($_) for ^3), (gather take $h2.get($_) for ^3), 'histogram clone';
+  my $h3 = Math::Libgsl::Histogram.new(4);
+  throws-like { $h3.copy($h) }, X::TypeCheck::Binding::Parameter, :message(/'Constraint type check failed'/);
+}
+
+subtest 'histogram statistics' => {
+  my $h = Math::Libgsl::Histogram.new(3).set-ranges(1, 10, 100, 1000).increment(5).increment(8).increment(18);
+  ok $h.max-val == 2, 'max count in bins';
+  ok $h.max-bin == 0, 'bin with max count';
+  ok $h.min-val == 0, 'min count in bins';
+  ok $h.min-bin == 2, 'bin with min count';
+  ok $h.mean == 22,   'mean of histogrammed variable';
+  is-approx $h.sigma, 23.33452377915607, 'standard deviation of histogrammed variable';
+  ok $h.sum == 3,     'sum of all bin values';
+}
+
+subtest 'histogram operations' => {
+  my $h1 = Math::Libgsl::Histogram.new(3).set-ranges(1, 10, 100, 1000);
+  my $h2 = Math::Libgsl::Histogram.new(3).set-ranges(1, 10, 100, 1000);
+  ok $h1.equal($h2), 'two histograms are identical';
+  my $h3 = Math::Libgsl::Histogram.new(4);
+  nok $h1.equal($h3), 'two histograms are not identical';
+  $h1.increment(5e0) for ^18;
+  $h1.increment(8e0) for ^10;
+  $h1.increment(18e0) for ^20;
+  $h1.increment(168e0) for ^25;
+  $h2.increment(5e0) for ^27;
+  $h2.increment(8e0) for ^35;
+  $h2.increment(18e0) for ^10;
+  $h2.increment(168e0) for ^15;
+  $h1.add($h2);
+  ok $h1.get(0) == 90, 'add two histograms';
+  $h1.sub($h2);
+  ok $h1.get(0) == 28, 'subtract two histograms';
+  $h1.mul($h2);
+  ok $h1.get(0) == 1736, 'multiply two histograms';
+  $h1.div($h2);
+  ok $h1.get(0) == 28, 'divide two histograms';
+  $h1.scale(2);
+  ok $h1.get(0) == 56, 'scale a histogram';
+  $h1.shift(2.5);
+  ok $h1.get(0) == 58.5, 'shift a histogram';
+}
+
+subtest 'histogram I/O' => {
+  my $filename = 't/histogram.dat';
+  LEAVE { with $filename.IO { .unlink if .e } }
+  my $h1 = Math::Libgsl::Histogram.new(3).set-ranges(1, 10, 100, 1000);
+  $h1.increment(5e0) for ^18;
+  $h1.increment(8e0) for ^10;
+  $h1.increment(18e0) for ^20;
+  $h1.increment(168e0) for ^25;
+  lives-ok { $h1.write: $filename }, 'can write a histogram to a file';
+  $h1.reset;
+  lives-ok { $h1.read: $filename },  'can read a histogram from a file';
+  is-deeply (gather take $h1.get($_) for ^3), (28e0, 20e0, 25e0), 'verify data';
+  lives-ok { $h1.printf: $filename, "%f", "%f" }, 'can printf a histogram to a file';
+  $h1.reset;
+  lives-ok { $h1.scanf: $filename }, 'can scanf a histogram from a file';
+  is-deeply (gather take $h1.get($_) for ^3), (28e0, 20e0, 25e0), 'verify formatted data';
+}
+
+done-testing;

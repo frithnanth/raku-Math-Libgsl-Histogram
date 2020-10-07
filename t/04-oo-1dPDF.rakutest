@@ -1,0 +1,17 @@
+#!/usr/bin/env perl6
+
+use Test;
+use lib 'lib';
+use Math::Libgsl::Histogram;
+use Math::Libgsl::Histogram::PDF;
+
+my $h1 = Math::Libgsl::Histogram.new(3).set-ranges(1, 10, 100, 1000);
+$h1.increment(5e0) for ^18;
+$h1.increment(8e0) for ^10;
+$h1.increment(18e0) for ^20;
+$h1.increment(168e0) for ^25;
+my $hpdf = Math::Libgsl::Histogram::PDF.new(3, $h1);
+isa-ok $hpdf, Math::Libgsl::Histogram::PDF, 'allocate probability distibution histogram';
+is-approx $hpdf.sample(.001e0), 1.0234642857142857, 'get random sample';
+
+done-testing;

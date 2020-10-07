@@ -1,0 +1,22 @@
+#!/usr/bin/env perl6
+
+use Test;
+use lib 'lib';
+use Math::Libgsl::Histogram2D;
+use Math::Libgsl::Histogram2D::PDF;
+
+my $*TOLERANCE = 10⁻¹²;
+
+subtest 'histogram probability distribution' => {
+  my $h = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (0, 10, 100, 1000), yranges => (2, 20, 200, 2000));
+  $h.increment(5, 5) for ^18;
+  $h.increment(8, 8) for ^10;
+  $h.increment(18, 18) for ^20;
+  $h.increment(168, 168) for ^25;
+  my $hpdf = Math::Libgsl::Histogram2D::PDF.new(:3nx, :3ny, :$h);
+  isa-ok $hpdf, Math::Libgsl::Histogram2D::PDF, 'allocate probability distibution histogram';
+  my ($x, $y) = $hpdf.sample(.001, 2.3);
+  ok ($hpdf.sample(.001, 2.3) Z≅ (0.026071428571428572, 43.4)), 'get random sample';
+}
+
+done-testing;
