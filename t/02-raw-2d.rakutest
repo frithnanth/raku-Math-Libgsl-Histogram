@@ -44,7 +44,7 @@ subtest 'updating, accessing, and searching elements' => {
   ok gsl_histogram2d_ymin($h) == 2, 'min y bin limit';
   ok gsl_histogram2d_nx($h) == 3, 'number of x bins';
   ok gsl_histogram2d_ny($h) == 3, 'number of y bins';
-  my int32 ($xbin, $ybin);
+  my size_t ($xbin, $ybin);
   gsl_histogram2d_find($h, 18e0, 22e0, $xbin, $ybin);
   ok $xbin == 1 && $ybin == 1, 'find x and y bin number';
   gsl_histogram2d_reset($h);
