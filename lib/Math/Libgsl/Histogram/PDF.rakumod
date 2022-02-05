@@ -1,6 +1,6 @@
 use v6;
 
-unit class Math::Libgsl::Histogram::PDF:ver<0.0.1>:auth<cpan:FRITH>;
+unit class Math::Libgsl::Histogram::PDF:ver<0.0.1>:auth<zef:FRITH>;
 
 use NativeCall;
 use Math::Libgsl::Constants;
