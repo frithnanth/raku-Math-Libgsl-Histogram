@@ -38,7 +38,7 @@ subtest 'updating, accessing, and searching elements' => {
   ok gsl_histogram_max($h) == 1000, 'max bin limit';
   ok gsl_histogram_min($h) == 1, 'min bin limit';
   ok gsl_histogram_bins($h) == 3, 'number of bins';
-  my int32 $bin;
+  my size_t $bin;
   gsl_histogram_find($h, 18e0, $bin);
   ok $bin == 1, 'find bin number';
   gsl_histogram_reset($h);

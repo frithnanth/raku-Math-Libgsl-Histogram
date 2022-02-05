@@ -53,7 +53,7 @@ method bins(--> UInt) { gsl_histogram_bins($!h) }
 method reset() { gsl_histogram_reset($!h) }
 # Search histogram ranges
 method find(Num() $x --> UInt) {
-  my int32 $bin;
+  my size_t $bin;
   my $ret = gsl_histogram_find($!h, $x, $bin);
   fail X::Libgsl.new: errno => $ret, error => "Can't find bin" if $ret ≠ GSL_SUCCESS;
   $bin
