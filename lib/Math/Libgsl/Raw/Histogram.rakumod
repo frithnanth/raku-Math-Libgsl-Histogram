@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::Libgsl::Raw::Histogram:ver<0.0.1>:auth<zef:FRITH>;
+unit module Math::Libgsl::Raw::Histogram:ver<0.0.2>:auth<zef:FRITH>;
 
 use NativeCall;
 
