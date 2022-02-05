@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/workflows/test/badge.svg)](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/actions) [![Build Status](https://travis-ci.org/frithnanth/raku-Math-Libgsl-Histogram.svg?branch=master)](https://travis-ci.org/frithnanth/raku-Math-Libgsl-Histogram)
+[![Actions Status](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/workflows/test/badge.svg)](https://github.com/frithnanth/raku-Math-Libgsl-Histogram/actions)
 
 ![Distribution of simulated events](examples/2Dhistogram.svg)
 
