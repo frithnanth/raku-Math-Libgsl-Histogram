@@ -30,8 +30,11 @@ method set-uniform(Num() $xmin, Num() $xmax where * > $xmin --> Math::Libgsl::Hi
   self
 }
 # Updating and accessing histogram elements
-method increment(Num() $x --> Math::Libgsl::Histogram) {
-  my $ret = gsl_histogram_increment($!h, $x);
+method increment(*@x --> Math::Libgsl::Histogram) {
+  my $ret;
+  for @x {
+    $ret +|= gsl_histogram_increment($!h, $_.Num);
+  }
   fail X::Libgsl.new: errno => $ret, error => "Can't increment the histogram" if $ret ≠ GSL_SUCCESS;
   self
 }
@@ -190,21 +193,25 @@ The constructor accepts one simple or named argument: the histogram size, or num
 =head3 set-ranges(*@ranges where *.elems == self.bins + 1 --> Math::Libgsl::Histogram)
 
 This method sets the ranges of the histogram using the B<@array>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 set-uniform(Num() $xmin, Num() $xmax where * > $xmin --> Math::Libgsl::Histogram)
 
 This method sets the ranges of the histogram to cover the range from B<$xmin> to B<$xmax> uniformly.
+
 This method returns B<self>, to allow method chaining.
 
-=head3 increment(Num() $x --> Math::Libgsl::Histogram)
+=head3 increment(*@x --> Math::Libgsl::Histogram)
 
-This method updates the histogram by adding one (1.0) to the bin whose range contains the coordinate B<$x>.
+This method updates the histogram by adding one (1.0) to each bin whose range contains each of the coordinates B<@x>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 accumulate(Num() $x, Num() $weight --> Math::Libgsl::Histogram)
 
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number B<$weight>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 get(Int $i where * < self.bins --> Num)
@@ -232,6 +239,7 @@ This method returns the index of the bin which covers the coordinate B<$x> in th
 =head3 copy(Math::Libgsl::Histogram $src where { $src.bins == self.bins } --> Math::Libgsl::Histogram)
 
 This method copies the histogram B<$src> into the current object.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 clone(--> Math::Libgsl::Histogram)
@@ -273,56 +281,71 @@ This method returns True if the all of the individual bin ranges of the two hist
 =head3 add(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram)
 
 This method adds the contents of the bins in histogram h2 to the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 sub(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram)
 
 This method subtracts the contents of the bins in histogram h2 from the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 mul(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram)
 
 This method multiplies the contents of the bins in histogram h2 by the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 div(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram)
 
 This method divides the contents of the bins in histogram h2 by the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 scale(Num() $scale --> Math::Libgsl::Histogram)
 
 This method multiplies the contents of the bins of the current histogram by B<$scale>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 shift(Num() $offset --> Math::Libgsl::Histogram)
 
 This method shifts the contents of the bins of the current histogram by B<$offset>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 write(Str $filename --> Math::Libgsl::Histogram)
 
 This method writes the ranges and bins of the current histogram to a file in binary format.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 read(Str $filename --> Math::Libgsl::Histogram)
 
 This method reads the ranges and bins of the current histogram from a file in binary format.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 printf(Str $filename, Str $range-format, Str $bin-format --> Math::Libgsl::Histogram)
 
 This function writes the ranges and bins of the current histogram line-by-line to a file using the format specifiers B<$range-format> and B<$bin-format>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 scanf(Str $filename --> Math::Libgsl::Histogram)
 
 This function reads formatted data from a file.
+
 The histogram must be preallocated with the correct length since the C library function uses the size of the current object to determine how many numbers to read.
+
 This method returns B<self>, to allow method chaining.
 
 
@@ -332,6 +355,7 @@ This method returns B<self>, to allow method chaining.
 =head3 new(UInt :$size!, Math::Libgsl::Histogram :$h!)
 
 The constructor accepts two simple or named arguments: the probability distribution function size, or number of bins, and the histogram.
+
 The histogram must not contain negative values, because a probability distribution cannot contain negative values.
 
 =head3 sample(Num() $r --> Num)
@@ -349,29 +373,33 @@ The constructor accepts two simple or named arguments: the number of bins in the
 =head3 set-ranges(:@xranges where *.elems == self.nx + 1, :@yranges where *.elems == self.ny + 1 --> Math::Libgsl::Histogram2D)
 
 This method sets the ranges of the current histogram using the arrays B<@xrange> and B<@yrange>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 set-uniform(Num() $xmin, Num() $xmax where * > $xmin, Num() $ymin, Num() $ymax where * > $ymin --> Math::Libgsl::Histogram2D)
 
 This method sets the ranges of the histogram to cover the ranges B<$xmin> to B<$xmax> and B<$ymin> to B<$ymax> uniformly.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 increment(Num() $x, Num() $y --> Math::Libgsl::Histogram2D)
 
 This method updates the histogram by adding one (1.0) to the bin whose x and y ranges contain the coordinates B<($x, $y)>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2D)
 
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number B<$weight>.
+
 This method returns B<self>, to allow method chaining.
 
-=head3 get(Int $i, Int $j --> Num)
+=head3 get(UInt $i where * < self.nx, Int $j where * < self.ny --> Num)
 
 This method returns the content of the (i, j)-th bin of the histogram.
 
-=head3 get-xrange(Int $i --> List)
-=head3 get-yrange(Int $i --> List)
+=head3 get-xrange(UInt $i --> List)
+=head3 get-yrange(UInt $i --> List)
 
 This method finds the upper and lower range limits of the i-th and j-th bin in the x and y directions of the histogram and returns them as a two-value list.
 
@@ -395,6 +423,7 @@ This method returns the index of the bin which covers the coordinate B<($x, $y)>
 =head3 copy(Math::Libgsl::Histogram2D $src where { $src.nx == self.nx && $src.ny == self.ny } --> Math::Libgsl::Histogram2D)
 
 This method copies the histogram B<$src> into the current object.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 clone(--> Math::Libgsl::Histogram2D)
@@ -449,56 +478,71 @@ This method returns True if the all of the individual bin ranges of the two hist
 =head3 add(Math::Libgsl::Histogram2D $h2 --> Math::Libgsl::Histogram2D)
 
 This method adds the contents of the bins in histogram h2 to the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 sub(Math::Libgsl::Histogram2D $h2 --> Math::Libgsl::Histogram2D)
 
 This method subtracts the contents of the bins in histogram h2 from the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 mul(Math::Libgsl::Histogram2D $h2 --> Math::Libgsl::Histogram2D)
 
 This method multiplies the contents of the bins in histogram h2 by the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 div(Math::Libgsl::Histogram2D $h2 --> Math::Libgsl::Histogram2D)
 
 This method divides the contents of the bins in histogram h2 by the corresponding bins of the current histogram.
+
 The two histograms must have the same number of bins and the same ranges.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 scale(Num() $scale --> Math::Libgsl::Histogram2D)
 
 This method multiplies the contents of the bins of the current histogram by B<$scale>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 shift(Num() $offset --> Math::Libgsl::Histogram2D)
 
 This method shifts the contents of the bins of the current histogram by B<$offset>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 write(Str $filename --> Math::Libgsl::Histogram2D)
 
 This method writes the ranges and bins of the current histogram to a file in binary format.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 read(Str $filename --> Math::Libgsl::Histogram2D)
 
 This method reads the ranges and bins of the current histogram from a file in binary format.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 printf(Str $filename, Str $range-format, Str $bin-format --> Math::Libgsl::Histogram2D)
 
 This function writes the ranges and bins of the current histogram line-by-line to a file using the format specifiers B<$range-format> and B<$bin-format>.
+
 This method returns B<self>, to allow method chaining.
 
 =head3 scanf(Str $filename --> Math::Libgsl::Histogram2D)
 
 This function reads formatted data from a file.
+
 The histogram must be preallocated with the correct length since the C library function uses the size of the current object to determine how many numbers to read.
+
 This method returns B<self>, to allow method chaining.
 
 
@@ -508,6 +552,7 @@ This method returns B<self>, to allow method chaining.
 =head3 new(UInt :$nx!, UInt :$ny!, Math::Libgsl::Histogram2D :$h!)
 
 The constructor accepts three simple or named arguments: the probability distribution function x and y number of bins, and the histogram.
+
 The histogram must not contain negative values, because a probability distribution cannot contain negative values.
 
 =head3 sample(Num() $r1, Num() $r2 --> List)
@@ -517,6 +562,7 @@ This method uses two uniform random numbers between zero and one, B<$r1> and B<$
 =head1 C Library Documentation
 
 For more details on libgsl see L<https://www.gnu.org/software/gsl/>.
+
 The excellent C Library manual is available here L<https://www.gnu.org/software/gsl/doc/html/index.html>, or here L<https://www.gnu.org/software/gsl/doc/latex/gsl-ref.pdf> in PDF format.
 
 =head1 Prerequisites
@@ -534,6 +580,7 @@ That command will install libgslcblas0 as well, since it's used by the GSL.
 =head2 Ubuntu 18.04
 
 libgsl23 and libgslcblas0 have a missing symbol on Ubuntu 18.04.
+
 I solved the issue installing the Debian Buster version of those three libraries:
 
 =item L<http://http.us.debian.org/debian/pool/main/g/gsl/libgslcblas0_2.5+dfsg-6_amd64.deb>

@@ -30,6 +30,12 @@ subtest 'updating, accessing, and searching elements' => {
   ok $h.find(18) == 1, 'find bin number';
   $h.reset;
   is-deeply (gather take $h.get($_) for ^3), (0e0, 0e0, 0e0), 'reset histogram';
+  $h.increment(1, 20, 300);
+  is-deeply ($h.get(0), $h.get(1), $h.get(2)), (1e0, 1e0, 1e0), 'increment histogram using an array';
+  $h.reset;
+  my @a = 1, 20, 300;
+  $h.increment(@a);
+  is-deeply ($h.get(0), $h.get(1), $h.get(2)), (1e0, 1e0, 1e0), 'increment histogram using an array';
 }
 
 subtest 'copying histogram' => {
