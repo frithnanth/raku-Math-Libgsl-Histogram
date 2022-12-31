@@ -16,6 +16,14 @@ subtest 'histogram allocation' => {
 subtest 'updating, accessing, and searching elements' => {
   my $h = Math::Libgsl::Histogram2D.new(3, 3).set-ranges(xranges => (1, 10, 100, 1000), yranges => (2, 20, 200, 2000)).increment(5, 5);
   ok $h.get(0, 0) == 1, 'increment histogram and read bin content';
+  throws-like { $h.get(10, 0) },
+              X::TypeCheck::Binding::Parameter,
+              :message(/'Constraint type check failed'/),
+              'get out-of-range bin along x axis';
+  throws-like { $h.get(0, 10) },
+              X::TypeCheck::Binding::Parameter,
+              :message(/'Constraint type check failed'/),
+              'get out-of-range bin along y axis';
   $h.accumulate(15, 22, 2.6);
   ok $h.get(1, 1) == 2.6, 'accumulate histogram with weight';
   my ($lower, $upper) = $h.get-xrange(1);

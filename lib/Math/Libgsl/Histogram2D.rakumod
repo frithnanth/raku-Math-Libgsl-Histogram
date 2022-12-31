@@ -43,14 +43,14 @@ method accumulate(Num() $x, Num() $y, Num() $weight --> Math::Libgsl::Histogram2
   fail X::Libgsl.new: errno => $ret, error => "Can't accumulate into the histogram" if $ret ≠ GSL_SUCCESS;
   self
 }
-method get(Int $i, Int $j --> Num) { gsl_histogram2d_get($!h, $i, $j) }
-method get-xrange(Int $i --> List) {
+method get(UInt $i where * < self.nx, UInt $j where * < self.ny --> Num) { gsl_histogram2d_get($!h, $i, $j) }
+method get-xrange(UInt $i --> List) {
   my num64 ($lower, $upper);
   my $ret = gsl_histogram2d_get_xrange($!h, $i, $lower, $upper);
   fail X::Libgsl.new: errno => $ret, error => "Can't read bin range" if $ret ≠ GSL_SUCCESS;
   return $lower, $upper;
 }
-method get-yrange(Int $i --> List) {
+method get-yrange(UInt $i --> List) {
   my num64 ($lower, $upper);
   my $ret = gsl_histogram2d_get_yrange($!h, $i, $lower, $upper);
   fail X::Libgsl.new: errno => $ret, error => "Can't read bin range" if $ret ≠ GSL_SUCCESS;
