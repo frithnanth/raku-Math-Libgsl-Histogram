@@ -16,6 +16,10 @@ subtest 'histogram allocation' => {
 subtest 'updating, accessing, and searching elements' => {
   my $h = Math::Libgsl::Histogram.new(3).set-ranges(0, 10, 100, 1000).increment(5);
   ok $h.get(0) == 1, 'increment histogram and read bin content';
+  throws-like { $h.get(10) },
+              X::TypeCheck::Binding::Parameter,
+              :message(/'Constraint type check failed'/),
+              'get out-of-range bin';
   $h.accumulate(15, 2.6);
   ok $h.get(1) == 2.6, 'accumulate histogram with weight';
   my ($lower, $upper) = $h.get-range(1);
@@ -36,7 +40,10 @@ subtest 'copying histogram' => {
   my $h2 = $h.clone;
   is-deeply (gather take $h.get($_) for ^3), (gather take $h2.get($_) for ^3), 'histogram clone';
   my $h3 = Math::Libgsl::Histogram.new(4);
-  throws-like { $h3.copy($h) }, X::TypeCheck::Binding::Parameter, :message(/'Constraint type check failed'/);
+  throws-like { $h3.copy($h) },
+              X::TypeCheck::Binding::Parameter,
+              :message(/'Constraint type check failed'/),
+              'copy into different number of bins';
 }
 
 subtest 'histogram statistics' => {

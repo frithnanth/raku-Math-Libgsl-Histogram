@@ -40,8 +40,8 @@ method accumulate(Num() $x, Num() $weight --> Math::Libgsl::Histogram){
   fail X::Libgsl.new: errno => $ret, error => "Can't accumulate into the histogram" if $ret ≠ GSL_SUCCESS;
   self
 }
-method get(Int $i --> Num) { gsl_histogram_get($!h, $i) }
-method get-range(Int $i --> List) {
+method get(UInt $i where * < self.bins --> Num) { gsl_histogram_get($!h, $i) }
+method get-range(UInt $i --> List) {
   my num64 ($lower, $upper);
   my $ret = gsl_histogram_get_range($!h, $i, $lower, $upper);
   fail X::Libgsl.new: errno => $ret, error => "Can't read bin range" if $ret ≠ GSL_SUCCESS;
@@ -207,11 +207,11 @@ This method returns B<self>, to allow method chaining.
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number B<$weight>.
 This method returns B<self>, to allow method chaining.
 
-=head3 get(Int $i --> Num)
+=head3 get(Int $i where * < self.bins --> Num)
 
 This method returns the content of the i-th bin of the histogram.
 
-=head3 get-range(Int $i --> List)
+=head3 get-range(UInt $i --> List)
 
 This method finds the upper and lower range limits of the i-th bin of the histogram and returns them as a two-value list.
 
