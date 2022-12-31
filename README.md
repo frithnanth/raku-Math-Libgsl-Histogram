@@ -74,11 +74,11 @@ This method updates the histogram by adding one (1.0) to the bin whose range con
 
 This method updates the histogram by increasing the value of the appropriate bin by the floating-point number **$weight**. This method returns **self**, to allow method chaining.
 
-### get(Int $i --> Num)
+### get(Int $i where * < self.bins --> Num)
 
 This method returns the content of the i-th bin of the histogram.
 
-### get-range(Int $i --> List)
+### get-range(UInt $i --> List)
 
 This method finds the upper and lower range limits of the i-th bin of the histogram and returns them as a two-value list.
 
