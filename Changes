@@ -1,6 +1,8 @@
 Revision history for Math-Libgsl-Histogram
 
 {{$NEXT}}
+    - Change increment() method of Histogram to work on arrays
+    - Add check on method get() of Histogram2D
 
 0.0.3  2022-12-31T20:04:35Z
     - Add a check on method get()
