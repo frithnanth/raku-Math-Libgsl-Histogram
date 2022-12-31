@@ -1,6 +1,7 @@
 Revision history for Math-Libgsl-Histogram
 
 {{$NEXT}}
+    - Add a check on method get()
 
 0.0.2  2022-02-05T10:49:10+01:00
     - Ready for Rakudo 2022.02 (thanks to niner)
