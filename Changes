@@ -1,6 +1,8 @@
 Revision history for Math-Libgsl-Histogram
 
 {{$NEXT}}
+
+0.0.3  2022-12-31T20:04:35Z
     - Add a check on method get()
 
 0.0.2  2022-02-05T10:49:10+01:00
