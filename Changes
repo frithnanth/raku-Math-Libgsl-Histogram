@@ -1,6 +1,7 @@
 Revision history for Math-Libgsl-Histogram
 
 {{$NEXT}}
+    - Methods that return self throw on error, instead of failing
 
 0.0.4  2022-12-31T21:40:54Z
     - Change increment() method of Histogram to work on arrays

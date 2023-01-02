@@ -58,6 +58,8 @@ Math::Libgsl::Histogram
 
 The constructor accepts one simple or named argument: the histogram size, or number of bins.
 
+All the following methods *throw* on error if they return **self**, otherwise they *fail* on error.
+
 ### set-ranges(*@ranges where *.elems == self.bins + 1 --> Math::Libgsl::Histogram)
 
 This method sets the ranges of the histogram using the **@array**.

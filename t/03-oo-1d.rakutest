@@ -36,6 +36,8 @@ subtest 'updating, accessing, and searching elements' => {
   my @a = 1, 20, 300;
   $h.increment(@a);
   is-deeply ($h.get(0), $h.get(1), $h.get(2)), (1e0, 1e0, 1e0), 'increment histogram using an array';
+  $h.reset;
+  throws-like { $h.increment(1001) }, X::Libgsl, message => /"Can't increment the histogram"/, 'throws on increment error';
 }
 
 subtest 'copying histogram' => {

@@ -21,12 +21,12 @@ submethod DESTROY { gsl_histogram_free($!h) }
 method set-ranges(*@ranges where *.elems == self.bins + 1 --> Math::Libgsl::Histogram) {
   my CArray[num64] $ranges .= new: @ranges».Num;
   my $ret = gsl_histogram_set_ranges($!h, $ranges, @ranges.elems);
-  fail X::Libgsl.new: errno => $ret, error => "Can't set histogram ranges" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't set histogram ranges").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method set-uniform(Num() $xmin, Num() $xmax where * > $xmin --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_set_ranges_uniform($!h, $xmin, $xmax);
-  fail X::Libgsl.new: errno => $ret, error => "Can't set uniform histogram ranges" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't set uniform histogram ranges").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 # Updating and accessing histogram elements
@@ -35,19 +35,19 @@ method increment(*@x --> Math::Libgsl::Histogram) {
   for @x {
     $ret +|= gsl_histogram_increment($!h, $_.Num);
   }
-  fail X::Libgsl.new: errno => $ret, error => "Can't increment the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't increment the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method accumulate(Num() $x, Num() $weight --> Math::Libgsl::Histogram){
   my $ret = gsl_histogram_accumulate($!h, $x, $weight);
-  fail X::Libgsl.new: errno => $ret, error => "Can't accumulate into the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't accumulate into the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method get(UInt $i where * < self.bins --> Num) { gsl_histogram_get($!h, $i) }
 method get-range(UInt $i --> List) {
   my num64 ($lower, $upper);
   my $ret = gsl_histogram_get_range($!h, $i, $lower, $upper);
-  fail X::Libgsl.new: errno => $ret, error => "Can't read bin range" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't read bin range").throw if $ret ≠ GSL_SUCCESS;
   return $lower, $upper;
 }
 method max(--> Num) { gsl_histogram_max($!h) }
@@ -64,7 +64,7 @@ method find(Num() $x --> UInt) {
 # Copying histograms
 method copy(Math::Libgsl::Histogram $src where { $src.bins == self.bins } --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_memcpy($!h, $src.h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't copy the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't copy the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method clone(--> Math::Libgsl::Histogram) {
@@ -84,53 +84,53 @@ method equal(Math::Libgsl::Histogram $h2 --> Bool) {
 }
 method add(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_add($!h, $h2.h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't add the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't add the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method sub(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_sub($!h, $h2.h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't subtract the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't subtract the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method mul(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_mul($!h, $h2.h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't multiply the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't multiply the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method div(Math::Libgsl::Histogram $h2 --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_div($!h, $h2.h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't divide the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't divide the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method scale(Num() $scale --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_scale($!h, $scale);
-  fail X::Libgsl.new: errno => $ret, error => "Can't scale the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't scale the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method shift(Num() $offset --> Math::Libgsl::Histogram) {
   my $ret = gsl_histogram_shift($!h, $offset);
-  fail X::Libgsl.new: errno => $ret, error => "Can't shift the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't shift the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 # I/O
 method write(Str $filename --> Math::Libgsl::Histogram) {
   my $ret = mgsl_histogram_fwrite($filename, $!h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't write the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't write the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method read(Str $filename --> Math::Libgsl::Histogram) {
   my $ret = mgsl_histogram_fread($filename, $!h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't read the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't read the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method printf(Str $filename, Str $range-format, Str $bin-format --> Math::Libgsl::Histogram) {
   my $ret = mgsl_histogram_fprintf($filename, $!h, $range-format, $bin-format);
-  fail X::Libgsl.new: errno => $ret, error => "Can't print the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't print the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 method scanf(Str $filename --> Math::Libgsl::Histogram) {
   my $ret = mgsl_histogram_fscanf($filename, $!h);
-  fail X::Libgsl.new: errno => $ret, error => "Can't scan the histogram" if $ret ≠ GSL_SUCCESS;
+  X::Libgsl.new(errno => $ret, error => "Can't scan the histogram").throw if $ret ≠ GSL_SUCCESS;
   self
 }
 
@@ -189,6 +189,8 @@ Histogram manages one-dimensional histograms, Histogram2D manages two-dimensiona
 =head3 new(UInt :$size!)
 
 The constructor accepts one simple or named argument: the histogram size, or number of bins.
+
+All the following methods I<throw> on error if they return B<self>, otherwise they I<fail> on error.
 
 =head3 set-ranges(*@ranges where *.elems == self.bins + 1 --> Math::Libgsl::Histogram)
 
