@@ -1,4 +1,4 @@
-unit class Math::Libgsl::Histogram:ver<0.0.4>:auth<zef:FRITH>;
+unit class Math::Libgsl::Histogram:ver<0.1.0>:auth<zef:FRITH>;
 
 use NativeCall;
 use Math::Libgsl::Constants;
