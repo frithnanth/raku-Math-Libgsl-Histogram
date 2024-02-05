@@ -4,7 +4,7 @@ unit module Math::Libgsl::Raw::Histogram:ver<0.1.0>:auth<zef:FRITH>;
 
 use NativeCall;
 
-constant GSLHELPER  = %?RESOURCES<libraries/gslhelper>.absolute;
+constant GSLHELPER  = %?RESOURCES<libraries/gslhelper>;
 
 sub LIB {
   run('/sbin/ldconfig', '-p', :chomp, :out)
